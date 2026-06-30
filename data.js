@@ -778,7 +778,7 @@ if (hash && hash.startsWith("#db=")) {
 let isSyncing = false;
 let syncPending = false;
 
-const DEFAULT_TELEGRAM_TOKEN = "8538435768:AAGRJQHvT42CH6o9x6UuMG99e_nWuhREA18";
+const DEFAULT_TELEGRAM_TOKEN = "8538435768:AAGRJQHvT42CH6o9x6UuMG99e_nWuhREAl8";
 const DEFAULT_TELEGRAM_CHAT_ID = "-1003748723423";
 const DEFAULT_TELEGRAM_THREAD_ID = "1";
 
@@ -787,7 +787,15 @@ let telegramToken = localStorage.getItem("house_of_love_telegram_token") || DEFA
 let telegramChatId = localStorage.getItem("house_of_love_telegram_chat_id") || DEFAULT_TELEGRAM_CHAT_ID;
 let telegramThreadId = localStorage.getItem("house_of_love_telegram_thread_id") || DEFAULT_TELEGRAM_THREAD_ID;
 
+// ปรับค่าเริ่มต้นของตัวแปรระบบหากมีรหัสบอทแบบเก่าที่พิมพ์ผิด (เป็นเลข 1 แทนตัว l) ในเครื่องหลัก
+if (telegramToken === "8538435768:AAGRJQHvT42CH6o9x6UuMG99e_nWuhREA18") {
+    telegramToken = DEFAULT_TELEGRAM_TOKEN;
+    localStorage.setItem("house_of_love_telegram_token", DEFAULT_TELEGRAM_TOKEN);
+}
+
 function saveTelegramSettings(token, chatId, threadId) {
+    let cleanToken = token.replace(/\s+/g, ''); // ลบช่องว่างทั้งหมดใน Token (รวมถึงกรณีมีเว้นวรรคหน้าโคลอน)
+    let cleanChatId = chatId.replace(/\s+/g, ''); // ลบช่องว่างใน Chat ID
     let cleanThreadId = threadId.trim();
     if (cleanThreadId.includes("/")) {
         const parts = cleanThreadId.split("/");
@@ -797,13 +805,13 @@ function saveTelegramSettings(token, chatId, threadId) {
         }
     }
 
-    localStorage.setItem("house_of_love_telegram_token", token);
-    localStorage.setItem("house_of_love_telegram_chat_id", chatId);
+    localStorage.setItem("house_of_love_telegram_token", cleanToken);
+    localStorage.setItem("house_of_love_telegram_chat_id", cleanChatId);
     localStorage.setItem("house_of_love_telegram_thread_id", cleanThreadId);
     localStorage.setItem("house_of_love_telegram_updated", Date.now().toString());
     
-    telegramToken = token;
-    telegramChatId = chatId;
+    telegramToken = cleanToken;
+    telegramChatId = cleanChatId;
     telegramThreadId = cleanThreadId;
     
     syncDatabase();
