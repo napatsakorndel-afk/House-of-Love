@@ -71,12 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         telegramForm.addEventListener("submit", (e) => {
             e.preventDefault();
-            const token = document.getElementById("teleBotToken").value.trim();
-            const chatId = document.getElementById("teleChatId").value.trim();
-            const threadId = document.getElementById("teleThreadId").value.trim();
-            
-            saveTelegramSettings(token, chatId, threadId);
-            alert("💾 บันทึกการตั้งค่า Telegram Bot เรียบร้อยแล้วค๊า! บอทจะเริ่มทำงานทันทีเมื่อตั้งค่าสมบูรณ์");
+            alert("🔒 การตั้งค่าระบบแจ้งเตือน Telegram ถูกล็อกการทำงานถาวรโดยผู้ดูแลระบบแล้วค๊า ไม่จำเป็นต้องกรอกหรือแก้ไขแล้วนะคะ");
         });
     }
 
@@ -84,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const databaseForm = document.getElementById("databaseSettingsForm");
     if (databaseForm) {
         document.getElementById("dbBlobId").value = currentBlobId || "";
-        document.getElementById("dbShareLink").value = window.location.origin + window.location.pathname + "#db=" + (currentBlobId || "");
         
         databaseForm.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -96,47 +90,44 @@ document.addEventListener("DOMContentLoaded", () => {
             
             localStorage.setItem("house_of_love_db_blob_id", blobId);
             currentBlobId = blobId;
-            document.getElementById("dbShareLink").value = window.location.origin + window.location.pathname + "#db=" + blobId;
             
             syncDatabase();
             alert("💾 บันทึกและเชื่อมโยงรหัสฐานข้อมูลคลาวด์เรียบร้อยแล้วค๊า! ระบบจะทำการซิงก์ข้อมูลทันที");
         });
         
         document.getElementById("recreateDbBtn").addEventListener("click", () => {
-            if (confirm("ต้องการสร้างห้องฐานข้อมูลใหม่บนคลาวด์หรือไม่คะ?\n\nระบบจะคัดลอกข้อมูลปัจจุบันในเครื่องนี้ไปใส่ในฐานข้อมูลอันใหม่ให้ และคุณสามารถส่งลิงก์เชื่อมต่อด่วนไปเปิดบนเครื่องอื่นเพื่อซิงก์ข้อมูลได้ทันทีโดยไม่ต้องกรอกรหัสค่ะ")) {
+            if (confirm("ต้องการสร้างห้องฐานข้อมูลใหม่บนคลาวด์หรือไม่คะ?\n\nระบบจะคัดลอกข้อมูลปัจจุบันในเครื่องนี้ไปใส่ในฐานข้อมูลอันใหม่ให้ และอุปกรณ์เครื่องอื่นๆ ทุกเครื่องจะซิงก์รหัสห้องใหม่นี้ให้อัตโนมัติในทันทีโดยไม่ต้องส่งลิงก์แชร์ค่ะ")) {
                 recreateCloudDatabase();
-            }
-        });
-
-        document.getElementById("copyShareLinkBtn").addEventListener("click", () => {
-            const shareLinkInput = document.getElementById("dbShareLink");
-            if (shareLinkInput && shareLinkInput.value) {
-                shareLinkInput.select();
-                shareLinkInput.setSelectionRange(0, 99999); // สำหรับมือถือ
-                
-                try {
-                    navigator.clipboard.writeText(shareLinkInput.value);
-                    alert("📋 คัดลอกลิงก์เชื่อมต่อด่วนลง Clipboard สำเร็จแล้วค๊า!\n\nคุณสามารถส่งลิงก์นี้เข้ากลุ่มแชท หรือส่งเข้ามือถือเพื่อเปิดซิงก์ข้อมูลได้ทันทีค่ะ");
-                } catch (err) {
-                    // Fallback สำหรับเบราว์เซอร์เก่า
-                    alert("ไม่สามารถคัดลอกอัตโนมัติได้ กรุณากดเลือกที่ช่องลิงก์แล้วคัดลอกด้วยตนเองนะคะคนดี");
-                }
             }
         });
     }
 
-    // ฟังสถานะซิงก์คลาวด์เพื่อแสดงข้อความเตือน/สถานะเชื่อมต่อ
-    window.addEventListener("db-sync-status", (e) => {
+    // ฟังก์ชันช่วยอัปเดตสถานะซิงก์คลาวด์บนหน้าเว็บ
+    const updateSyncStatusUI = (status, time) => {
         const statusSpan = document.getElementById("dbSyncStatus");
         if (statusSpan) {
-            if (e.detail.status === "online") {
-                statusSpan.textContent = "สถานะ: 🟢 เชื่อมต่อคลาวด์เรียบร้อย (ซิงก์ล่าสุด: " + new Date().toLocaleTimeString() + ")";
+            if (status === "online") {
+                const timeStr = time ? new Date(time).toLocaleTimeString() : new Date().toLocaleTimeString();
+                statusSpan.textContent = "สถานะ: 🟢 เชื่อมต่อคลาวด์เรียบร้อย (ซิงก์ล่าสุด: " + timeStr + ")";
                 statusSpan.style.color = "#2E7D32";
-            } else {
+            } else if (status === "offline") {
                 statusSpan.textContent = "สถานะ: 🔴 ตรวจพบข้อผิดพลาด / ฐานข้อมูลหมดอายุ (404)";
                 statusSpan.style.color = "#C62828";
+            } else {
+                statusSpan.textContent = "สถานะ: 🟡 กำลังตรวจสอบ...";
+                statusSpan.style.color = "var(--color-brown-light)";
             }
         }
+    };
+
+    // แสดงสถานะเริ่มต้นทันทีที่โหลดหน้าเว็บ (แก้ปัญหาดักจับอีเวนต์แรกไม่ทัน)
+    if (typeof lastSyncStatus !== "undefined") {
+        updateSyncStatusUI(lastSyncStatus.status, lastSyncStatus.time);
+    }
+
+    // ฟังสถานะซิงก์คลาวด์เพื่อแสดงข้อความเตือน/สถานะเชื่อมต่อ
+    window.addEventListener("db-sync-status", (e) => {
+        updateSyncStatusUI(e.detail.status, Date.now());
     });
 
     // ฟังเหตุการณ์การซิงก์ฐานข้อมูลคลาวด์เพื่ออัปเดต UI แบบเรียลไทม์
@@ -157,9 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // อัปเดตอินพุตตั้งค่า Database
         const dbBlobInput = document.getElementById("dbBlobId");
-        const dbShareInput = document.getElementById("dbShareLink");
         if (dbBlobInput) dbBlobInput.value = currentBlobId || "";
-        if (dbShareInput) dbShareInput.value = window.location.origin + window.location.pathname + "#db=" + (currentBlobId || "");
     });
 });
 

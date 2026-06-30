@@ -762,6 +762,39 @@ function getCloudDbUrl() {
     return "https://api.jsonblob.com/api/jsonBlob/" + currentBlobId;
 }
 
+// ระบบ Registry กลางสำหรับแชร์รหัสห้องข้อมูลล่าสุดข้ามเครื่องอัตโนมัติ (ไม่ต้องคอยส่งลิงก์แชร์)
+const REGISTRY_APP_KEY = "9gfe6y0l";
+const REGISTRY_KEY = "active_db_id";
+
+async function fetchRegistryDbId() {
+    try {
+        const response = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/${REGISTRY_APP_KEY}/${REGISTRY_KEY}`);
+        if (response.ok) {
+            let data = await response.json();
+            if (data && typeof data === "string") {
+                data = data.trim().replace(/^"|"$/g, '');
+                return data;
+            }
+        }
+    } catch (e) {
+        console.error("Error fetching registry db ID:", e);
+    }
+    return null;
+}
+
+async function updateRegistryDbId(newDbId) {
+    try {
+        const response = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${REGISTRY_APP_KEY}/${REGISTRY_KEY}/${newDbId}`, {
+            method: "POST",
+            body: " " // ส่งบอดี้เปล่าเพื่อหลีกเลี่ยงข้อผิดพลาด 411 Length Required ใน IIS
+        });
+        return response.ok;
+    } catch (e) {
+        console.error("Error updating registry db ID:", e);
+    }
+    return false;
+}
+
 // ตรวจจับการเปิดลิงก์เชื่อมต่อด่วนผ่าน URL Hash (#db=...)
 const hash = window.location.hash;
 if (hash && hash.startsWith("#db=")) {
@@ -777,44 +810,15 @@ if (hash && hash.startsWith("#db=")) {
 
 let isSyncing = false;
 let syncPending = false;
+let lastSyncStatus = { status: "checking", time: null };
 
-const DEFAULT_TELEGRAM_TOKEN = "8538435768:AAGRJQHvT42CH6o9x6UuMG99e_nWuhREAl8";
-const DEFAULT_TELEGRAM_CHAT_ID = "-1003748723423";
-const DEFAULT_TELEGRAM_THREAD_ID = "1";
-
-// Telegram configuration variables (synced via cloud)
-let telegramToken = localStorage.getItem("house_of_love_telegram_token") || DEFAULT_TELEGRAM_TOKEN;
-let telegramChatId = localStorage.getItem("house_of_love_telegram_chat_id") || DEFAULT_TELEGRAM_CHAT_ID;
-let telegramThreadId = localStorage.getItem("house_of_love_telegram_thread_id") || DEFAULT_TELEGRAM_THREAD_ID;
-
-// ปรับค่าเริ่มต้นของตัวแปรระบบหากมีรหัสบอทแบบเก่าที่พิมพ์ผิด (เป็นเลข 1 แทนตัว l) ในเครื่องหลัก
-if (telegramToken === "8538435768:AAGRJQHvT42CH6o9x6UuMG99e_nWuhREA18") {
-    telegramToken = DEFAULT_TELEGRAM_TOKEN;
-    localStorage.setItem("house_of_love_telegram_token", DEFAULT_TELEGRAM_TOKEN);
-}
+// Telegram configuration variables (Locked to administrator default values)
+const telegramToken = "8538435768:AAGRJQHvT42CH6o9x6UuMG99e_nWuhREAl8";
+const telegramChatId = "-1003748723423";
+const telegramThreadId = ""; // ส่งเข้าห้องหลัก (General) โดยอัตโนมัติ
 
 function saveTelegramSettings(token, chatId, threadId) {
-    let cleanToken = token.replace(/\s+/g, ''); // ลบช่องว่างทั้งหมดใน Token (รวมถึงกรณีมีเว้นวรรคหน้าโคลอน)
-    let cleanChatId = chatId.replace(/\s+/g, ''); // ลบช่องว่างใน Chat ID
-    let cleanThreadId = threadId.trim();
-    if (cleanThreadId.includes("/")) {
-        const parts = cleanThreadId.split("/");
-        const lastPart = parts[parts.length - 1];
-        if (lastPart && !isNaN(lastPart)) {
-            cleanThreadId = lastPart;
-        }
-    }
-
-    localStorage.setItem("house_of_love_telegram_token", cleanToken);
-    localStorage.setItem("house_of_love_telegram_chat_id", cleanChatId);
-    localStorage.setItem("house_of_love_telegram_thread_id", cleanThreadId);
-    localStorage.setItem("house_of_love_telegram_updated", Date.now().toString());
-    
-    telegramToken = cleanToken;
-    telegramChatId = cleanChatId;
-    telegramThreadId = cleanThreadId;
-    
-    syncDatabase();
+    // ล็อกตัวแปรระบบถาวรแล้ว
 }
 
 async function recreateCloudDatabase() {
@@ -826,9 +830,9 @@ async function recreateCloudDatabase() {
         
         const localLastCleared = parseInt(localStorage.getItem("house_of_love_logs_last_cleared") || "0", 10);
         
-        const localToken = localStorage.getItem("house_of_love_telegram_token") || DEFAULT_TELEGRAM_TOKEN;
-        const localChatId = localStorage.getItem("house_of_love_telegram_chat_id") || DEFAULT_TELEGRAM_CHAT_ID;
-        const localThread = localStorage.getItem("house_of_love_telegram_thread_id") || DEFAULT_TELEGRAM_THREAD_ID;
+        const localToken = telegramToken;
+        const localChatId = telegramChatId;
+        const localThread = telegramThreadId;
         const localUpdated = parseInt(localStorage.getItem("house_of_love_telegram_updated") || "0", 10);
         
         const initialData = {
@@ -860,18 +864,16 @@ async function recreateCloudDatabase() {
         localStorage.setItem("house_of_love_db_blob_id", newId);
         currentBlobId = newId;
         
+        // อัปเดต Registry กลางเพื่อให้เครื่องอื่นซิงก์รหัสใหม่ทันทีอัตโนมัติ
+        updateRegistryDbId(newId);
+        
         // อัปเดต UI ช่องกรอก
         const dbInput = document.getElementById("dbBlobId");
         if (dbInput) dbInput.value = newId;
         
-        const shareLinkInput = document.getElementById("dbShareLink");
-        if (shareLinkInput) {
-            shareLinkInput.value = window.location.origin + window.location.pathname + "#db=" + newId;
-        }
-        
         syncDatabase();
         
-        alert(`🎉 สร้างห้องฐานข้อมูลคลาวด์สำเร็จแล้วค่ะ!\n\nรหัสห้องใหม่คือ:\n${newId}\n\nคุณสามารถคัดลอกลิงก์แชร์สำหรับส่งให้เครื่องอื่นในปุ่มด้านล่างเพื่อซิงก์ข้อมูลได้ทันทีค๊า!`);
+        alert(`🎉 สร้างห้องฐานข้อมูลคลาวด์ใหม่สำเร็จแล้วค่ะ!\n\nรหัสห้องใหม่คือ:\n${newId}\n\nระบบส่วนกลาง (Registry) ได้ทำการส่งรหัสนี้ไปให้อุปกรณ์เครื่องอื่นๆ ทุกเครื่องเชื่อมต่อข้อมูลกันโดยอัตโนมัติเรียบร้อยแล้วค๊า!`);
     } catch (e) {
         console.error("Error recreating database:", e);
         alert("ขออภัยค่ะ เกิดข้อผิดพลาดในการสร้างฐานข้อมูลใหม่ กรุณาลองใหม่อีกครั้งนะคนดี");
@@ -963,20 +965,35 @@ async function syncDatabase() {
         const localLastCleared = parseInt(localStorage.getItem("house_of_love_logs_last_cleared") || "0", 10);
         
         // Read local telegram settings
-        const localToken = localStorage.getItem("house_of_love_telegram_token") || DEFAULT_TELEGRAM_TOKEN;
-        const localChatId = localStorage.getItem("house_of_love_telegram_chat_id") || DEFAULT_TELEGRAM_CHAT_ID;
-        const localThread = localStorage.getItem("house_of_love_telegram_thread_id") || DEFAULT_TELEGRAM_THREAD_ID;
+        const localToken = telegramToken;
+        const localChatId = telegramChatId;
+        const localThread = telegramThreadId;
         const localUpdated = parseInt(localStorage.getItem("house_of_love_telegram_updated") || "0", 10);
         
         const cloudData = await fetchCloudData();
         
         if (!cloudData) {
-            console.warn("Could not retrieve cloud data. Offline mode active.");
+            console.warn("Could not retrieve cloud data. Trying registry fallback...");
+            
+            // ค้นหาฐานข้อมูลใหม่ที่เครื่องอื่นอาจสร้างขึ้นมาล่าสุดในระบบ Registry
+            const registryId = await fetchRegistryDbId();
+            if (registryId && registryId !== currentBlobId) {
+                console.log("Switching to active database ID from registry:", registryId);
+                localStorage.setItem("house_of_love_db_blob_id", registryId);
+                currentBlobId = registryId;
+                isSyncing = false;
+                // ลองใหม่อีกครั้งด้วยรหัสบอร์ดชุดใหม่ทันที
+                setTimeout(syncDatabase, 200);
+                return;
+            }
+
+            lastSyncStatus = { status: "offline", time: Date.now() };
             window.dispatchEvent(new CustomEvent("db-sync-status", { detail: { status: "offline" } }));
             isSyncing = false;
             return;
         }
         
+        lastSyncStatus = { status: "online", time: Date.now() };
         window.dispatchEvent(new CustomEvent("db-sync-status", { detail: { status: "online" } }));
         
         // Handle sync cleared logs history
@@ -1125,9 +1142,6 @@ async function syncDatabase() {
             localStorage.setItem("house_of_love_telegram_chat_id", mergedChatId);
             localStorage.setItem("house_of_love_telegram_thread_id", mergedThread);
             localStorage.setItem("house_of_love_telegram_updated", activeTelegramUpdated.toString());
-            telegramToken = mergedToken;
-            telegramChatId = mergedChatId;
-            telegramThreadId = mergedThread;
             
             // Notify UI to re-render
             window.dispatchEvent(new CustomEvent("db-synced"));
@@ -1314,5 +1328,20 @@ function applyMoistureDecay() {
 
 // Start auto sync on load and poll every 10 seconds
 applyMoistureDecay();
-syncDatabase();
+
+// ดึงรหัสห้องข้อมูลล่าสุดจาก Registry ก่อนเริ่มซิงก์ เพื่อให้ทุกอุปกรณ์ซิงก์กันอัตโนมัติ
+(async () => {
+    try {
+        const registryId = await fetchRegistryDbId();
+        if (registryId && registryId !== currentBlobId) {
+            console.log("Auto-switched to active database ID from registry on startup:", registryId);
+            localStorage.setItem("house_of_love_db_blob_id", registryId);
+            currentBlobId = registryId;
+        }
+    } catch (e) {
+        console.error("Error doing registry startup lookup:", e);
+    }
+    syncDatabase();
+})();
+
 setInterval(syncDatabase, 10000);

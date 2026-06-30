@@ -344,13 +344,7 @@
                         <span id="dbSyncStatus" style="font-size: 12px; color: #2E7D32; font-weight: bold; margin-top: 5px;">สถานะ: กำลังตรวจสอบ...</span>
                     </div>
                     
-                    <div class="form-group" style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
-                        <label for="dbShareLink" style="font-size: 13px; font-weight: bold; color: var(--color-brown-wood-dark);">ลิงก์คัดลอกสำหรับส่งให้เครื่องอื่นเชื่อมต่ออัตโนมัติ</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="dbShareLink" readonly style="flex: 1; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-size: 12px; outline: none; background: rgba(200,200,200,0.3); color: var(--color-brown-light);" placeholder="จะสร้างหลังจากคุณกดสร้างห้องข้อมูลใหม่">
-                            <button type="button" id="copyShareLinkBtn" class="cozy-btn" style="background: linear-gradient(135deg, #2196F3, #1976D2); border-color: #2196F3; color: white; border-radius: 8px; font-size: 12px; padding: 6px 12px; white-space: nowrap; cursor: pointer;">📋 คัดลอกลิงก์</button>
-                        </div>
-                    </div>
+                    
                     
                     <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
                         <button type="submit" class="cozy-btn" style="background: linear-gradient(135deg, var(--color-pink-accent), #FF4081); border-color: var(--color-pink-accent); color: white; border-radius: 8px; font-size: 13px; padding: 6px 16px; cursor: pointer;">💾 บันทึกและซิงก์ข้อมูล</button>
@@ -359,28 +353,25 @@
             </div>
 
             <!-- Telegram Bot configuration -->
-            <div class="telegram-settings-box cozy-wood-card" style="margin-top: 30px;">
+            <div class="telegram-settings-box cozy-wood-card" style="margin-top: 30px; opacity: 0.85;">
                 <div class="telegram-settings-header" style="display: flex; align-items: center; gap: 10px; border-bottom: 2px dashed var(--color-brown-wood); padding-bottom: 10px; margin-bottom: 15px;">
-                    <span style="font-size: 24px;">Telegram บอทแจ้งเตือน 📢</span>
+                    <span style="font-size: 24px;">Telegram บอทแจ้งเตือน 📢 <span style="font-size: 14px; color: #2E7D32; font-weight: bold; background: rgba(46, 125, 50, 0.1); padding: 3px 8px; border-radius: 12px; margin-left: 5px;">🔒 ล็อกถาวร</span></span>
                 </div>
                 <p style="font-size: 13px; color: var(--color-brown-light); margin-bottom: 15px; line-height: 1.5;">
-                    คุณสามารถนำบอทเข้าไปในกลุ่มแยกของทีม กน. และกรอก <b>Bot Token</b> และ <b>Chat ID</b> เพื่อแจ้งเตือนความรู้สึก, รดน้ำต้นไม้ และนัดหมายใหม่โดยอัตโนมัติค๊า!
+                    ระบบทำการล็อกการตั้งค่าบอท Telegram สำหรับกลุ่มแยก กน. เป็นค่ามาตรฐานโดยผู้ดูแลระบบแล้วค๊า เพื่อไม่ให้มีการแก้ไขข้อมูลที่ผิดพลาดและเพื่อความเสถียรของทุกอุปกรณ์
                 </p>
                 <form id="telegramSettingsForm" style="display: flex; flex-direction: column; gap: 12px;">
                     <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
                         <label for="teleBotToken" style="font-size: 13px; font-weight: bold; color: var(--color-brown-wood-dark);">1. Telegram Bot Token</label>
-                        <input type="text" id="teleBotToken" placeholder="ตัวอย่าง: 1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-family: monospace; font-size: 12px; outline: none; background: rgba(255,255,255,0.6);">
+                        <input type="text" id="teleBotToken" readonly style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-family: monospace; font-size: 12px; outline: none; background: rgba(200,200,200,0.3); color: var(--color-brown-light);">
                     </div>
                     <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
                         <label for="teleChatId" style="font-size: 13px; font-weight: bold; color: var(--color-brown-wood-dark);">2. Telegram Chat ID (กลุ่มแยก)</label>
-                        <input type="text" id="teleChatId" placeholder="ตัวอย่าง: -1001234567890 (กรุณานำเครื่องหมายติดลบและตัวเลขมาใส่ให้ครบ)" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-family: monospace; font-size: 12px; outline: none; background: rgba(255,255,255,0.6);">
+                        <input type="text" id="teleChatId" readonly style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-family: monospace; font-size: 12px; outline: none; background: rgba(200,200,200,0.3); color: var(--color-brown-light);">
                     </div>
                     <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
                         <label for="teleThreadId" style="font-size: 13px; font-weight: bold; color: var(--color-brown-wood-dark);">3. Telegram Topic Thread ID (หัวข้อย่อย - ตัวเลือก)</label>
-                        <input type="text" id="teleThreadId" placeholder="ตัวอย่าง: 2 (หากเว้นว่างไว้ ระบบจะแจ้งเตือนเข้าห้องหลัก/General โดยอัตโนมัติ)" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-family: monospace; font-size: 12px; outline: none; background: rgba(255,255,255,0.6);">
-                    </div>
-                    <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
-                        <button type="submit" class="cozy-btn" style="background: linear-gradient(135deg, var(--color-pink-accent), #FF4081); border-color: var(--color-pink-accent); color: white; border-radius: 8px; font-size: 13px; padding: 6px 16px;">💾 บันทึกตั้งค่าระบบ</button>
+                        <input type="text" id="teleThreadId" readonly placeholder="แจ้งเตือนเข้าห้องหลัก (General) โดยอัตโนมัติ" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-family: monospace; font-size: 12px; outline: none; background: rgba(200,200,200,0.3); color: var(--color-brown-light);">
                     </div>
                 </form>
             </div>
