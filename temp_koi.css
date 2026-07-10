@@ -1,0 +1,32 @@
+/* ==============================================================
+   KOI POND MINIGAME ADDITIONS
+   ============================================================== */
+.lotus-flower {
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 15;
+    animation: lotusFloat 40s linear forwards;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+}
+.lotus-message {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.85);
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    white-space: nowrap;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+@keyframes lotusFloat {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+    2% { opacity: 1; }
+    50% { transform: translate(100px, 30px) rotate(15deg); }
+    98% { opacity: 1; }
+    100% { transform: translate(200px, 60px) rotate(30deg); opacity: 0; }
+}

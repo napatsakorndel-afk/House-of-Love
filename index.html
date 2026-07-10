@@ -32,6 +32,7 @@
             <button class="nav-btn" data-page="dashboard-page">📊 ภาพรวมบอร์ดตรวจใจ</button>
             <button class="nav-btn" data-page="appointments-page">📅 นัดหมายฮีลใจ</button>
             <button class="nav-btn" data-page="manage-page">⚙️ สมาชิก กน.</button>
+            <button class="nav-btn" data-page="minigame-page" style="background: linear-gradient(135deg, #FFB74D, #FFA726); color: #5C3A21; border-color: #5C3A21;">🎮 มินิเกม</button>
         </nav>
         <div class="audio-panel">
             <button id="musicToggle" class="music-btn" title="เปิด/ปิดดนตรี Lofi บำบัด">
@@ -232,7 +233,7 @@
 
                 <!-- Stat 3: Team Index Scores -->
                 <div class="stat-card glass-card index-card">
-                    <h3>ดัชนีเฉลี่ยสะสม</h3>
+                    <h3>ดัชนีเฉลี่ยวันนี้</h3>
                     <div class="index-score-row">
                         <div class="score-circle-wrapper">
                             <div class="score-circle" id="heartIndexProgress" style="--percent: 0;">
@@ -266,8 +267,30 @@
                     </div>
                 </div>
                 <div class="chart-legend">
-                    <span class="legend-item"><span class="legend-dot heart-dot"></span> พลังใจเฉลี่ย</span>
-                    <span class="legend-item"><span class="legend-dot fire-dot"></span> พลังไฟเฉลี่ย</span>
+                    <span class="legend-item"><span class="legend-dot heart-dot"></span> ดัชนีใจ (Heart)</span>
+                    <span class="legend-item"><span class="legend-dot fire-dot"></span> ดัชนีไฟ (Fire)</span>
+                </div>
+            </div>
+
+            <!-- Historical Trend Chart Section -->
+            <div class="cozy-wood-card" style="margin-top: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed var(--color-brown-wood); padding-bottom: 12px; margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-size: 18px; color: var(--color-brown-wood-dark);">📈 สถิติแนวโน้มพลังงานของทีม (สะสม)</h3>
+                    <div class="trend-filters" style="display: flex; gap: 10px;">
+                        <button class="cozy-btn secondary" id="trend30DaysBtn" style="padding: 4px 10px; font-size: 12px;">30 วันล่าสุด</button>
+                        <button class="cozy-btn secondary" id="trendAllTimeBtn" style="padding: 4px 10px; font-size: 12px;">ทั้งหมด (1 ปี)</button>
+                        <select id="trendDeptFilter" style="padding: 4px 10px; font-size: 12px; border-radius: 8px; border: 1.5px solid var(--color-brown-wood); outline: none;">
+                            <option value="all">ทุกฝ่ายรวมกัน</option>
+                            <option value="บริหาร">ฝ่ายบริหาร</option>
+                            <option value="สวัสดิการ">ฝ่ายสวัสดิการ</option>
+                            <option value="สถานที่">ฝ่ายสถานที่</option>
+                            <option value="กิจกรรม">ฝ่ายกิจกรรม</option>
+                            <option value="PR">ฝ่าย PR</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="historicalTrendChart"></canvas>
                 </div>
             </div>
 
@@ -332,24 +355,12 @@
                     <span style="font-size: 24px;">ระบบฐานข้อมูลคลาวด์ ☁️</span>
                 </div>
                 <p style="font-size: 13px; color: var(--color-brown-light); margin-bottom: 15px; line-height: 1.5;">
-                    ระบบจะทำการเชื่อมข้อมูลรายชื่อสมาชิก บันทึกความรู้สึก นัดหมาย และความชื้นต้นไม้ระหว่างอุปกรณ์ทุกเครื่องอัตโนมัติ โดยใช้ <b>JSONBlob ID</b> ค๊า
+                    ระบบอัปเกรดเป็น <b>Firebase Realtime Database</b> แล้วค๊า! ข้อมูลทั้งหมด (สมาชิก, นัดหมาย, เช็กอิน, รดน้ำต้นไม้) จะถูกเชื่อมโยงอัตโนมัติในทุกอุปกรณ์แบบเรียลไทม์ทันทีที่คุณหรือเพื่อนๆ ทำการแก้ไขข้อมูล
                 </p>
-                <form id="databaseSettingsForm" style="display: flex; flex-direction: column; gap: 12px;">
-                    <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="dbBlobId" style="font-size: 13px; font-weight: bold; color: var(--color-brown-wood-dark);">JSONBlob ID ปัจจุบัน (ใช้ซิงก์ข้ามเครื่อง)</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="dbBlobId" placeholder="ตัวอย่าง: 019f1782-c543-7b6c-9dbd-c2b25ca1cf96" style="flex: 1; padding: 8px 12px; border: 1.5px solid var(--color-brown-wood); border-radius: 8px; font-family: monospace; font-size: 12px; outline: none; background: rgba(255,255,255,0.6);">
-                            <button type="button" id="recreateDbBtn" class="cozy-btn" style="background: linear-gradient(135deg, #4CAF50, #2E7D32); border-color: #4CAF50; color: white; border-radius: 8px; font-size: 12px; padding: 6px 12px; white-space: nowrap; cursor: pointer;">✨ สร้างห้องข้อมูลใหม่</button>
-                        </div>
-                        <span id="dbSyncStatus" style="font-size: 12px; color: #2E7D32; font-weight: bold; margin-top: 5px;">สถานะ: กำลังตรวจสอบ...</span>
-                    </div>
-                    
-                    
-                    
-                    <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
-                        <button type="submit" class="cozy-btn" style="background: linear-gradient(135deg, var(--color-pink-accent), #FF4081); border-color: var(--color-pink-accent); color: white; border-radius: 8px; font-size: 13px; padding: 6px 16px; cursor: pointer;">💾 บันทึกและซิงก์ข้อมูล</button>
-                    </div>
-                </form>
+                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px;">
+                    <span id="dbSyncStatus" style="font-size: 14px; color: #2E7D32; font-weight: bold;">สถานะ: กำลังตรวจสอบ...</span>
+                    <p style="font-size: 12px; color: var(--color-brown-light); margin: 0;">ไม่ต้องกรอกรหัสใดๆ ระบบเชื่อมต่ออัตโนมัติ 100% ✨</p>
+                </div>
             </div>
 
             <!-- Telegram Bot configuration -->
@@ -385,13 +396,18 @@
             </div>
             
             <div class="koi-pond-container glass-card">
-                <div class="koi-pond-controls">
-                    <button class="cozy-btn feed-btn" id="feedKoiBtn">ให้อาหารปลาคราฟ 🍬</button>
-                    <span class="pond-instruction">💡 คลิกที่น้ำในบ่อเพื่อโปรยอาหาร หรือคลิกที่ตัวปลาเพื่อดูคู่มือ MBTI ได้เลยค่ะ</span>
+                <div class="koi-pond-controls" style="flex-wrap: wrap; gap: 10px; display: flex; align-items: center;">
+                    <button class="cozy-btn feed-btn" id="feedKoiBtn">ให้อาหารปลา 🍬</button>
+                    
+                    <div style="display: flex; gap: 8px; flex: 1; min-width: 250px;">
+                        <input type="text" id="lotusMessageInput" class="cozy-input" placeholder="พิมพ์ข้อความใส่ดอกบัว..." maxlength="30" style="flex: 1; font-size: 13px;">
+                        <button class="cozy-btn" id="sendLotusBtn" style="background: linear-gradient(135deg, #F48FB1, #D81B60); color: white;">🪷 ลอยดอกบัว</button>
+                    </div>
                 </div>
+                <div class="pond-instruction" style="margin-top: 10px; font-size: 13px;">💡 คลิกที่น้ำเพื่อโปรยอาหาร หรือพิมพ์ข้อความลอยดอกบัวให้กำลังใจกันแบบ Real-time!</div>
                 
                 <!-- The Pond container where fish will swim -->
-                <div class="koi-pond-water" id="koiPondWater">
+                <div class="koi-pond-water" id="koiPondWater" style="position: relative;">
                     <!-- Fish elements and food will be dynamically rendered here -->
                 </div>
             </div>
@@ -435,6 +451,67 @@
                 <p>คลิกที่ต้นไม้ของสมาชิกแต่ละคนเพื่อ <b>"รดน้ำต้นไม้ 💧"</b> โดยการเลือกประโยคเชิงบวกเสริมพลังใจ หากรดน้ำดูแลสม่ำเสมอเป็นเวลา 1 ปี (365 วัน) ต้นไม้จะเติบโตขึ้นเรื่อยๆ จนผลิดอกและกลายเป็นต้นไม้ใหญ่สีทองเปล่งประกายงดงามค๊า! (สามารถคลิกปุ่มปุ๋ยวิเศษเพื่อเร่งการทดสอบได้นะค๊า)</p>
             </div>
         </section>
+
+        <!-- PAGE 6: MINIGAMES PAGE -->
+        <section id="minigame-page" class="page-section">
+            <h2 class="page-title">🎮 มินิเกมฮีลใจ & สุ่มรายชื่อก่อนประชุม</h2>
+            
+            <div class="minigame-grid">
+                <!-- Game 1: Campfire -->
+                <div class="minigame-card glass-card">
+                    <h3>🔥 รวมพลังจุดกองไฟ</h3>
+                    <p class="minigame-desc">มารวมพลังกดจุดกองไฟให้ถึงเป้าหมายกันเถอะ!</p>
+                    
+                    <div class="campfire-game-wrapper" style="height: 250px; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <div class="campfire-container" id="campfireContainer">
+                            <div class="campfire-base">
+                                <div class="campfire-flame" id="minigameCampfireFlame">🔥</div>
+                                <div class="campfire-logs">🪵</div>
+                            </div>
+                            <div id="campfireSuccessMsg" class="campfire-success" style="display: none;">🎉 พลังเต็มร้อยแล้ว ลุยประชุมกันเลย! 🎉</div>
+                        </div>
+                    </div>
+                    
+                    <div class="fire-progress-wrapper">
+                        <div class="fire-progress-bar">
+                            <div class="fire-fill" id="fireFill" style="width: 0%;"></div>
+                        </div>
+                        <p class="fire-count-text">พลังงานกองไฟ: <span id="fireCountVal">0</span> / 500</p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="cozy-btn primary" id="clickFireBtn" style="flex: 1; background: linear-gradient(135deg, #FF7043, #F4511E); font-size: 16px;">🔥 กดปุ่มเติมไฟด่วน!</button>
+                        <button class="cozy-btn secondary" id="resetFireBtn" style="font-size: 14px;">🔄 รีเซ็ต</button>
+                    </div>
+                </div>
+
+                <!-- Game 2: Balloon Pop -->
+                <div class="minigame-card glass-card">
+                    <h3>🎈 ลูกโป่งรวมพลัง</h3>
+                    <p class="minigame-desc">ช่วยกันปั๊มลมลูกโป่งให้พองโตจนกว่าจะแตก!</p>
+                    
+                    <div class="balloon-game-container">
+                        <div class="balloon-wrapper">
+                            <div class="balloon" id="coopBalloon">🎈</div>
+                            <div class="confetti-container" id="confettiContainer"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar-container" style="margin-top: 15px;">
+                        <div class="progress-bar-fill" id="balloonFill" style="width: 0%; background: linear-gradient(90deg, #F48FB1, #D81B60);"></div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button class="cozy-btn primary" id="pumpBalloonBtn" style="flex: 1; font-size: 16px;">💨 ปั๊มลมลูกโป่ง!</button>
+                        <button class="cozy-btn secondary" id="resetBalloonBtn" style="font-size: 14px;">🔄 รีเซ็ต</button>
+                    </div>
+                    
+                    <div id="balloonSuccessMsg" class="campfire-success" style="display: none; margin-top: 10px;">
+                        เย้! ลูกโป่งแตกแล้ว พร้อมลุยงานค๊า! 🎉
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- MODAL 1: CHECK-IN ASSESSMENT (แบบประเมินสุขภาพจิต) -->
@@ -462,7 +539,7 @@
                             <span class="energy-percent" id="energySliderVal">70%</span>
                         </div>
                         <input type="range" id="energyRange" min="0" max="100" value="70" class="cozy-range-slider">
-                        <div class="slider-labels">
+                        <div class="slider-labels" style="display: flex; justify-content: space-between; width: 100%; padding: 0 4px; box-sizing: border-box;">
                             <span>🔋 แบตหมด (0%)</span>
                             <span>⚡ พลังเต็มร้อย (100%)</span>
                         </div>
@@ -782,6 +859,14 @@
     </div>
 
     <!-- Script imports -->
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
+    
+    <!-- Chart.js for Historical Trends -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <script src="data.js"></script>
     <script src="app.js"></script>
 </body>

@@ -754,62 +754,28 @@ function clearDailyCheckins() {
 }
 
 // ==========================================================================
-// REAL-TIME CLOUD SYNCHRONIZATION SYSTEM (JSONBLOB DATABASE API)
 // ==========================================================================
-let currentBlobId = localStorage.getItem("house_of_love_db_blob_id") || "019f1782-c543-7b6c-9dbd-c2b25ca1cf96";
+// REAL-TIME CLOUD SYNCHRONIZATION SYSTEM (FIREBASE REALTIME DATABASE)
+// ==========================================================================
 
-function getCloudDbUrl() {
-    return "https://api.jsonblob.com/api/jsonBlob/" + currentBlobId;
+const firebaseConfig = {
+    apiKey: "AIzaSyA9a-gPZaVC-EeJdFLYAN8NiA0I17p9EKQ",
+    authDomain: "house-of-love-backend.firebaseapp.com",
+    databaseURL: "https://house-of-love-backend-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "house-of-love-backend",
+    storageBucket: "house-of-love-backend.firebasestorage.app",
+    messagingSenderId: "594225237358",
+    appId: "1:594225237358:web:45f43b0e00979b1fb4057f",
+    measurementId: "G-9BPRJEBCFJ"
+};
+
+// Initialize Firebase if not already initialized
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
 }
-
-// ระบบ Registry กลางสำหรับแชร์รหัสห้องข้อมูลล่าสุดข้ามเครื่องอัตโนมัติ (ไม่ต้องคอยส่งลิงก์แชร์)
-const REGISTRY_APP_KEY = "9gfe6y0l";
-const REGISTRY_KEY = "active_db_id";
-
-async function fetchRegistryDbId() {
-    try {
-        const response = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/${REGISTRY_APP_KEY}/${REGISTRY_KEY}`);
-        if (response.ok) {
-            let data = await response.json();
-            if (data && typeof data === "string") {
-                data = data.trim().replace(/^"|"$/g, '');
-                return data;
-            }
-        }
-    } catch (e) {
-        console.error("Error fetching registry db ID:", e);
-    }
-    return null;
-}
-
-async function updateRegistryDbId(newDbId) {
-    try {
-        const response = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${REGISTRY_APP_KEY}/${REGISTRY_KEY}/${newDbId}`, {
-            method: "POST",
-            body: " " // ส่งบอดี้เปล่าเพื่อหลีกเลี่ยงข้อผิดพลาด 411 Length Required ใน IIS
-        });
-        return response.ok;
-    } catch (e) {
-        console.error("Error updating registry db ID:", e);
-    }
-    return false;
-}
-
-// ตรวจจับการเปิดลิงก์เชื่อมต่อด่วนผ่าน URL Hash (#db=...)
-const hash = window.location.hash;
-if (hash && hash.startsWith("#db=")) {
-    const dbId = hash.substring(4).trim();
-    if (dbId.length > 5) {
-        localStorage.setItem("house_of_love_db_blob_id", dbId);
-        currentBlobId = dbId;
-        // ล้าง hash บน URL เพื่อความสะอาด
-        history.replaceState("", document.title, window.location.pathname + window.location.search);
-        alert("🔗 เชื่อมต่อกับฐานข้อมูลคลาวด์ตัวใหม่เรียบร้อยแล้วค๊า!");
-    }
-}
+const db = firebase.database();
 
 let isSyncing = false;
-let syncPending = false;
 let lastSyncStatus = { status: "checking", time: null };
 
 // Telegram configuration variables (Locked to administrator default values)
@@ -819,65 +785,6 @@ const telegramThreadId = ""; // ส่งเข้าห้องหลัก (G
 
 function saveTelegramSettings(token, chatId, threadId) {
     // ล็อกตัวแปรระบบถาวรแล้ว
-}
-
-async function recreateCloudDatabase() {
-    try {
-        const localMembers = JSON.parse(localStorage.getItem("house_of_love_members")) || [];
-        const localLogs = JSON.parse(localStorage.getItem("house_of_love_logs")) || [];
-        const localAppts = JSON.parse(localStorage.getItem("house_of_love_appts")) || [];
-        const localTrees = JSON.parse(localStorage.getItem("house_of_love_trees")) || [];
-        
-        const localLastCleared = parseInt(localStorage.getItem("house_of_love_logs_last_cleared") || "0", 10);
-        
-        const localToken = telegramToken;
-        const localChatId = telegramChatId;
-        const localThread = telegramThreadId;
-        const localUpdated = parseInt(localStorage.getItem("house_of_love_telegram_updated") || "0", 10);
-        
-        const initialData = {
-            members: localMembers,
-            logs: localLogs,
-            appts: localAppts,
-            trees: localTrees,
-            lastClearedLogs: localLastCleared,
-            telegramToken: localToken,
-            telegramChatId: localChatId,
-            telegramThreadId: localThread,
-            telegramUpdated: localUpdated
-        };
-        
-        const response = await fetch("https://api.jsonblob.com/api/jsonBlob", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify(initialData)
-        });
-        
-        if (!response.ok) throw new Error("Failed to create new cloud database");
-        
-        const newId = response.headers.get("X-jsonblob-id");
-        if (!newId) throw new Error("No database ID received");
-        
-        localStorage.setItem("house_of_love_db_blob_id", newId);
-        currentBlobId = newId;
-        
-        // อัปเดต Registry กลางเพื่อให้เครื่องอื่นซิงก์รหัสใหม่ทันทีอัตโนมัติ
-        updateRegistryDbId(newId);
-        
-        // อัปเดต UI ช่องกรอก
-        const dbInput = document.getElementById("dbBlobId");
-        if (dbInput) dbInput.value = newId;
-        
-        syncDatabase();
-        
-        alert(`🎉 สร้างห้องฐานข้อมูลคลาวด์ใหม่สำเร็จแล้วค่ะ!\n\nรหัสห้องใหม่คือ:\n${newId}\n\nระบบส่วนกลาง (Registry) ได้ทำการส่งรหัสนี้ไปให้อุปกรณ์เครื่องอื่นๆ ทุกเครื่องเชื่อมต่อข้อมูลกันโดยอัตโนมัติเรียบร้อยแล้วค๊า!`);
-    } catch (e) {
-        console.error("Error recreating database:", e);
-        alert("ขออภัยค่ะ เกิดข้อผิดพลาดในการสร้างฐานข้อมูลใหม่ กรุณาลองใหม่อีกครั้งนะคนดี");
-    }
 }
 
 async function triggerTelegramNotification(messageText) {
@@ -917,260 +824,59 @@ function escapeHtml(text) {
         .replace(/>/g, "&gt;");
 }
 
-async function fetchCloudData() {
-    try {
-        // Add cache-busting query parameter and no-store option to bypass CDN/browser caches
-        const response = await fetch(getCloudDbUrl() + "?t=" + Date.now(), { 
-            cache: "no-store" 
-        });
-        if (!response.ok) throw new Error("Cloud fetch failed");
-        return await response.json();
-    } catch (e) {
-        console.error("Error fetching cloud data:", e);
-        return null;
-    }
-}
-
-async function saveCloudData(data) {
-    try {
-        const response = await fetch(getCloudDbUrl(), {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify(data)
-        });
-        return response.ok;
-    } catch (e) {
-        console.error("Error saving cloud data:", e);
-        return false;
-    }
-}
-
-async function syncDatabase() {
-    if (isSyncing) {
-        syncPending = true;
-        return;
-    }
-    isSyncing = true;
-    syncPending = false;
+// Subscribe to Firebase real-time updates
+db.ref("house_of_love_data").on("value", (snapshot) => {
+    isSyncing = true; // Prevent re-triggering syncDatabase
+    const cloudData = snapshot.val();
     
-    try {
-        const localMembers = JSON.parse(localStorage.getItem("house_of_love_members")) || [];
-        const localLogs = JSON.parse(localStorage.getItem("house_of_love_logs")) || [];
-        const localAppts = JSON.parse(localStorage.getItem("house_of_love_appts")) || [];
-        const localTrees = JSON.parse(localStorage.getItem("house_of_love_trees")) || [];
-        
-        const localLastCleared = parseInt(localStorage.getItem("house_of_love_logs_last_cleared") || "0", 10);
-        
-        // Read local telegram settings
-        const localToken = telegramToken;
-        const localChatId = telegramChatId;
-        const localThread = telegramThreadId;
-        const localUpdated = parseInt(localStorage.getItem("house_of_love_telegram_updated") || "0", 10);
-        
-        const cloudData = await fetchCloudData();
-        
-        if (!cloudData) {
-            console.warn("Could not retrieve cloud data. Trying registry fallback...");
-            
-            // ค้นหาฐานข้อมูลใหม่ที่เครื่องอื่นอาจสร้างขึ้นมาล่าสุดในระบบ Registry
-            const registryId = await fetchRegistryDbId();
-            if (registryId && registryId !== currentBlobId) {
-                console.log("Switching to active database ID from registry:", registryId);
-                localStorage.setItem("house_of_love_db_blob_id", registryId);
-                currentBlobId = registryId;
-                isSyncing = false;
-                // ลองใหม่อีกครั้งด้วยรหัสบอร์ดชุดใหม่ทันที
-                setTimeout(syncDatabase, 200);
-                return;
-            }
-
-            lastSyncStatus = { status: "offline", time: Date.now() };
-            window.dispatchEvent(new CustomEvent("db-sync-status", { detail: { status: "offline" } }));
-            isSyncing = false;
-            return;
-        }
+    if (cloudData) {
+        // Safely update localStorage with incoming data
+        localStorage.setItem("house_of_love_members", JSON.stringify(cloudData.members || []));
+        localStorage.setItem("house_of_love_logs", JSON.stringify(cloudData.logs || []));
+        localStorage.setItem("house_of_love_appts", JSON.stringify(cloudData.appts || []));
+        localStorage.setItem("house_of_love_trees", JSON.stringify(cloudData.trees || []));
+        localStorage.setItem("house_of_love_logs_last_cleared", (cloudData.lastClearedLogs || 0).toString());
         
         lastSyncStatus = { status: "online", time: Date.now() };
         window.dispatchEvent(new CustomEvent("db-sync-status", { detail: { status: "online" } }));
-        
-        // Handle sync cleared logs history
-        const activeClearedLogs = Math.max(localLastCleared, cloudData.lastClearedLogs || 0);
-        const filterCleared = (list) => list.filter(l => new Date(l.timestamp).getTime() > activeClearedLogs);
-        
-        const filteredCloudLogs = filterCleared(cloudData.logs || []);
-        const filteredLocalLogs = filterCleared(localLogs);
-        
-        // 1. Merge Members (Roster changes)
-        const mergedMembers = [];
-        const memberMap = new Map();
-        INITIAL_MEMBERS.forEach(m => memberMap.set(m.id, m));
-        (cloudData.members || []).forEach(m => memberMap.set(m.id, m));
-        localMembers.forEach(m => {
-            const init = INITIAL_MEMBERS.find(im => im.id === m.id);
-            if (init && JSON.stringify(m) !== JSON.stringify(init)) {
-                memberMap.set(m.id, m);
-            }
-        });
-        memberMap.forEach(m => mergedMembers.push(m));
-        
-        // 2. Merge Logs (Evaluations / Mood updates)
-        const mergedLogs = [];
-        const logMap = new Map();
-        filteredCloudLogs.forEach(l => logMap.set(l.id, l));
-        filteredLocalLogs.forEach(l => {
-            if (logMap.has(l.id)) {
-                const cloudLog = logMap.get(l.id);
-                // Merge clearedFromDaily status
-                l.clearedFromDaily = cloudLog.clearedFromDaily || l.clearedFromDaily;
-            }
-            logMap.set(l.id, l);
-        });
-        logMap.forEach(l => mergedLogs.push(l));
-        mergedLogs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
-        // 3. Merge Appointments (including deleted tombstones)
-        const mergedAppts = [];
-        const apptMap = new Map();
-        (cloudData.appts || []).forEach(a => apptMap.set(a.id, a));
-        localAppts.forEach(a => {
-            if (apptMap.has(a.id)) {
-                const cloudAppt = apptMap.get(a.id);
-                const joinedSet = new Set([...cloudAppt.joined, ...a.joined]);
-                a.joined = Array.from(joinedSet);
-                a.deleted = cloudAppt.deleted || a.deleted;
-            }
-            apptMap.set(a.id, a);
-        });
-        apptMap.forEach(a => mergedAppts.push(a));
-        
-        // 4. Merge Trees (Newest wins based on lastWatered)
-        const mergedTrees = [];
-        const treeMap = new Map();
-        // Setup initial default trees
-        INITIAL_MEMBERS.forEach(m => {
-            treeMap.set(m.id, {
-                memberId: m.id,
-                waterPercent: 50,
-                growthPoints: 0,
-                lastWatered: null,
-                lastWateredBy: null,
-                lastPhrase: null,
-                lastFertilized: null
-            });
-        });
-        
-        // Merge from cloud
-        (cloudData.trees || []).forEach(t => {
-            if (treeMap.has(t.memberId)) {
-                treeMap.set(t.memberId, t);
-            }
-        });
-        
-        // Merge from local
-        localTrees.forEach(t => {
-            if (treeMap.has(t.memberId)) {
-                const cloudTree = treeMap.get(t.memberId);
-                const cloudTime = cloudTree.lastWatered ? new Date(cloudTree.lastWatered).getTime() : 0;
-                const localTime = t.lastWatered ? new Date(t.lastWatered).getTime() : 0;
-                if (localTime >= cloudTime) {
-                    treeMap.set(t.memberId, t);
-                } else {
-                    treeMap.set(t.memberId, cloudTree);
-                }
-            }
-        });
-        
-        treeMap.forEach(t => mergedTrees.push(t));
-        
-        // 5. Merge Telegram settings
-        const cloudToken = cloudData.telegramToken || "";
-        const cloudChatId = cloudData.telegramChatId || "";
-        const cloudThread = cloudData.telegramThreadId || "";
-        const cloudUpdated = cloudData.telegramUpdated || 0;
-        
-        const activeTelegramUpdated = Math.max(localUpdated, cloudUpdated);
-        let mergedToken = localToken;
-        let mergedChatId = localChatId;
-        let mergedThread = localThread;
-        
-        if (cloudUpdated > localUpdated) {
-            mergedToken = cloudToken;
-            mergedChatId = cloudChatId;
-            mergedThread = cloudThread;
-        }
-
-        // Apply 90-day logs auto-pruning for the cloud database
-        const ninetyDaysAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
-        const cloudTargetLogs = mergedLogs.filter(l => l.timestamp && new Date(l.timestamp).getTime() > ninetyDaysAgo);
-        
-        // Check if local storage needs updating (local != merged)
-        const localChanged = 
-            JSON.stringify(localMembers) !== JSON.stringify(mergedMembers) ||
-            JSON.stringify(localLogs) !== JSON.stringify(mergedLogs) ||
-            JSON.stringify(localAppts) !== JSON.stringify(mergedAppts) ||
-            JSON.stringify(localTrees) !== JSON.stringify(mergedTrees) ||
-            localLastCleared !== activeClearedLogs ||
-            localToken !== mergedToken ||
-            localChatId !== mergedChatId ||
-            localThread !== mergedThread ||
-            localUpdated !== activeTelegramUpdated;
-            
-        // Check if cloud database needs updating (cloud != merged/pruned)
-        const cloudChanged = 
-            JSON.stringify(cloudData.members) !== JSON.stringify(mergedMembers) ||
-            JSON.stringify(cloudData.logs) !== JSON.stringify(cloudTargetLogs) ||
-            JSON.stringify(cloudData.appts) !== JSON.stringify(mergedAppts) ||
-            JSON.stringify(cloudData.trees) !== JSON.stringify(mergedTrees) ||
-            (cloudData.lastClearedLogs || 0) !== activeClearedLogs ||
-            cloudToken !== mergedToken ||
-            cloudChatId !== mergedChatId ||
-            cloudThread !== mergedThread ||
-            (cloudData.telegramUpdated || 0) !== activeTelegramUpdated;
-            
-        if (localChanged) {
-            localStorage.setItem("house_of_love_members", JSON.stringify(mergedMembers));
-            localStorage.setItem("house_of_love_logs", JSON.stringify(mergedLogs));
-            localStorage.setItem("house_of_love_appts", JSON.stringify(mergedAppts));
-            localStorage.setItem("house_of_love_trees", JSON.stringify(mergedTrees));
-            localStorage.setItem("house_of_love_logs_last_cleared", activeClearedLogs.toString());
-            
-            // Save merged telegram settings
-            localStorage.setItem("house_of_love_telegram_token", mergedToken);
-            localStorage.setItem("house_of_love_telegram_chat_id", mergedChatId);
-            localStorage.setItem("house_of_love_telegram_thread_id", mergedThread);
-            localStorage.setItem("house_of_love_telegram_updated", activeTelegramUpdated.toString());
-            
-            // Notify UI to re-render
-            window.dispatchEvent(new CustomEvent("db-synced"));
-        }
-        
-        if (cloudChanged) {
-            const success = await saveCloudData({
-                members: mergedMembers,
-                logs: cloudTargetLogs, // save pruned logs in cloud
-                appts: mergedAppts,
-                trees: mergedTrees,
-                lastClearedLogs: activeClearedLogs,
-                telegramToken: mergedToken,
-                telegramChatId: mergedChatId,
-                telegramThreadId: mergedThread,
-                telegramUpdated: activeTelegramUpdated
-            });
-            if (!success) {
-                console.warn("Failed to sync local changes to cloud database. Will retry in the next sync loop.");
-            }
-        }
-    } catch (e) {
-        console.error("Error syncing database:", e);
-    } finally {
-        isSyncing = false;
-        if (syncPending) {
-            setTimeout(syncDatabase, 1000);
-        }
+        window.dispatchEvent(new CustomEvent("db-synced"));
+    } else {
+        // No data in cloud yet (first time initialization), push local data
+        isSyncing = false; 
+        syncDatabase();
     }
+    isSyncing = false;
+}, (error) => {
+    console.error("Firebase sync error:", error);
+    lastSyncStatus = { status: "offline", time: Date.now() };
+    window.dispatchEvent(new CustomEvent("db-sync-status", { detail: { status: "offline" } }));
+});
+
+// Push local changes to Firebase
+function syncDatabase() {
+    if (isSyncing) return; // Don't push if we are currently receiving a push
+    
+    const localMembers = JSON.parse(localStorage.getItem("house_of_love_members")) || INITIAL_MEMBERS;
+    const localLogs = JSON.parse(localStorage.getItem("house_of_love_logs")) || [];
+    const localAppts = JSON.parse(localStorage.getItem("house_of_love_appts")) || INITIAL_APPOINTMENTS;
+    const localTrees = JSON.parse(localStorage.getItem("house_of_love_trees")) || [];
+    const localLastCleared = parseInt(localStorage.getItem("house_of_love_logs_last_cleared") || "0", 10);
+    
+    // Prune logs older than 90 days to keep database lightweight
+    const ninetyDaysAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+    const activeLogs = localLogs.filter(l => l.timestamp && new Date(l.timestamp).getTime() > ninetyDaysAgo);
+    
+    const dbData = {
+        members: localMembers,
+        logs: activeLogs,
+        appts: localAppts,
+        trees: localTrees,
+        lastClearedLogs: localLastCleared,
+        lastUpdated: Date.now()
+    };
+    
+    db.ref("house_of_love_data").set(dbData)
+      .catch(error => console.error("Error saving to Firebase:", error));
 }
 
 // ==========================================================================

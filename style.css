@@ -180,6 +180,8 @@ h1, h2, h3, h4, h5, h6, .nav-btn, .roof-text, .counselor-greeting, .scale-label 
 .main-nav {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .nav-btn {
@@ -2853,4 +2855,309 @@ h1, h2, h3, h4, h5, h6, .nav-btn, .roof-text, .counselor-greeting, .scale-label 
 }
 
 
+
+/* ==============================================================
+   MINIGAMES PAGE
+   ============================================================== */
+.minigame-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+@media (min-width: 768px) {
+    .minigame-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+.minigame-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.minigame-desc {
+    font-size: 13px;
+    color: var(--color-brown-wood);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Campfire Game */
+.sky-container {
+    width: 100%;
+    height: 300px;
+    background: linear-gradient(180deg, #1A237E, #283593, #3949AB, #8C9EFF);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 15px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+.campfire-container {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    z-index: 10;
+}
+.campfire-flame {
+    font-size: 40px;
+    line-height: 1;
+    transition: transform 0.1s;
+    filter: drop-shadow(0 0 10px #FF9800);
+}
+.campfire-flame.fire-active {
+    transform: scale(1.2) translateY(-5px);
+}
+.campfire-logs {
+    font-size: 30px;
+    line-height: 1;
+    margin-top: -5px;
+}
+.campfire-success {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 10px #FF9800, 0 0 20px #FF5722;
+    z-index: 20;
+    text-align: center;
+    width: 100%;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.fire-progress-wrapper {
+    width: 100%;
+    margin: 10px 0;
+}
+.fire-progress-bar {
+    width: 100%;
+    height: 12px;
+    background: #E0E0E0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.fire-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FF9800, #FF5722, #D84315);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+.fire-count-text {
+    font-size: 12px;
+    color: var(--color-brown-wood-dark);
+    margin-top: 5px;
+    text-align: right;
+    font-weight: bold;
+}
+
+/* Floating Messages */
+.sky-message-input-area {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 15px;
+}
+.floating-bubble {
+    position: absolute;
+    bottom: -30px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.85);
+    color: #333;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    pointer-events: none;
+    z-index: 5;
+    animation: floatUpSky 6s linear forwards;
+}
+@keyframes floatUpSky {
+    0% { transform: translateY(0) scale(0.8); opacity: 0; }
+    10% { opacity: 1; transform: translateY(-30px) scale(1); }
+    80% { opacity: 1; }
+    100% { transform: translateY(-350px) scale(1.2); opacity: 0; }
+}
+
+/* Randomizer Game */
+.stick-randomizer-container {
+    width: 100%;
+    height: 300px;
+    background: #FFF9C4;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 15px;
+    border: 3px solid #D7CCC8;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 20px;
+}
+.wood-pile {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+.stick {
+    position: absolute;
+    bottom: 0;
+    width: 10px;
+    height: 100px;
+    background: linear-gradient(90deg, #D7CCC8, #8D6E63, #795548);
+    border-radius: 5px;
+    transform-origin: bottom center;
+    transition: transform 0.3s;
+    box-shadow: inset -2px 0 5px rgba(0,0,0,0.2);
+}
+.stick.shaking {
+    animation: shakeStick 0.1s infinite;
+}
+@keyframes shakeStick {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.picked-stick {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 200px;
+    background: linear-gradient(90deg, #FFECB3, #FFCA28, #FFB300);
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    z-index: 20;
+    animation: pullStick 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.stick-name {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 20px;
+    font-weight: bold;
+    color: #3E2723;
+    letter-spacing: 2px;
+}
+@keyframes pullStick {
+    0% { transform: translate(-50%, 100%) scale(0.5); opacity: 0; }
+    50% { transform: translate(-50%, -60%) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+.random-announce {
+    margin-top: 15px;
+    font-size: 16px;
+    color: #E65100;
+    background: #FFF3E0;
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: 2px dashed #FFB74D;
+    text-align: center;
+    width: 100%;
+}
+
+/* ==============================================================
+   KOI POND MINIGAME ADDITIONS
+   ============================================================== */
+.lotus-flower {
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 15;
+    animation: lotusFloat 40s linear forwards;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+}
+.lotus-message {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.85);
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    white-space: nowrap;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+@keyframes lotusFloat {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+    2% { opacity: 1; }
+    50% { transform: translate(100px, 30px) rotate(15deg); }
+    98% { opacity: 1; }
+    100% { transform: translate(200px, 60px) rotate(30deg); opacity: 0; }
+}
+
+/* ==============================================================
+   BALLOON POP MINIGAME ADDITIONS
+   ============================================================== */
+.balloon-game-container {
+    height: 180px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    border-radius: 15px;
+    margin-top: 15px;
+    cursor: pointer;
+}
+.balloon-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 20px;
+}
+.balloon {
+    font-size: 40px;
+    transition: transform 0.1s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform-origin: bottom center;
+    user-select: none;
+    pointer-events: none;
+}
+.confetti-container {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+.confetti {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    top: -10px;
+    border-radius: 2px;
+    animation: confettiFall 3s linear forwards;
+    opacity: 0;
+}
+@keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(200px) rotate(720deg); opacity: 0; }
+}
 
